@@ -1,12 +1,13 @@
 import asyncio
-import xml.etree.ElementTree as ET
 import edge_tts
 import streamlit as st
 
+# Page Config
 st.set_page_config(
-    page_title="ElevenVoice Studio Pro", page_icon="🎙️", layout="wide"
+    page_title="Pro AI Voice Studio", page_icon="🎙️", layout="wide"
 )
 
+# Custom ElevenLabs Styling
 st.markdown(
     """
     <style>
@@ -23,6 +24,7 @@ st.markdown(
 )
 
 
+# Security: Password Lock
 def check_password():
     if "authenticated" not in st.session_state:
         st.session_state["authenticated"] = False
@@ -82,26 +84,10 @@ if check_password():
     speed_str = f"{'+' if speed >= 0 else ''}{speed}%"
     pitch_str = f"{'+' if pitch >= 0 else ''}{pitch}Hz"
 
-    # Function to generate expressive SSML audio
+    # Fixed Function without raw_response
     async def generate_voice(text, voice, s, p):
         out = "speech.mp3"
-        # Escape XML special characters
-        safe_text = (
-            text.replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-        )
-
-        # SSML Wrapper to add natural pauses and prosody
-        ssml_text = f"""<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'>
-            <voice name='{voice}'>
-                <prosody rate='{s}' pitch='{p}'>
-                    {safe_text}
-                </prosody>
-            </voice>
-        </speak>"""
-
-        comm = edge_tts.Communicate(ssml_text, voice, raw_response=False)
+        comm = edge_tts.Communicate(text, voice, rate=s, pitch=p)
         await comm.save(out)
         return out
 
@@ -109,7 +95,7 @@ if check_password():
         if not text_input.strip():
             st.warning("Please provide text input!")
         else:
-            with st.spinner("Synthesizing emotional speech..."):
+            with st.spinner("Synthesizing speech..."):
                 try:
                     asyncio.run(
                         generate_voice(
@@ -123,7 +109,7 @@ if check_password():
                     st.download_button(
                         "📥 Download MP3 Audio",
                         data=audio_file,
-                        file_name="expressive_voice.mp3",
+                        file_name="ai_voice.mp3",
                         mime="audio/mp3",
                     )
                 except Exception as e:
