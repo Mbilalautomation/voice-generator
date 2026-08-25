@@ -1,12 +1,13 @@
 import asyncio
+import random
+import urllib.parse
 import edge_tts
-from gradio_client import Client
 import requests
 import streamlit as st
 
 # Page Config
 st.set_page_config(
-    page_title="Team AI Production Studio", page_icon="🎬", layout="wide"
+    page_title="Team AI Production Studio", page_icon="🎨", layout="wide"
 )
 
 # Custom Dark ElevenLabs Styling
@@ -19,7 +20,7 @@ st.markdown(
         color: white; font-weight: bold; border-radius: 8px;
         padding: 12px; border: none; width: 100%; transition: 0.3s;
     }
-    .stTextArea textarea, .stTextInput input { 
+    .stTextArea textarea, .stTextInput input, .stSelectbox div { 
         background-color: #161B26; color: white; border: 1px solid #2D3748; border-radius: 8px; 
     }
     </style>
@@ -56,7 +57,9 @@ if check_password():
     st.title("🚀 Team All-In-One AI Studio")
 
     # Main Tabs
-    tab1, tab2 = st.tabs(["🎙️ Voice Over Studio", "🎬 AI Video Generator"])
+    tab1, tab2 = st.tabs(
+        ["🎙️ Voice Over Studio", "🎨 8K Ultra-HD Visual Generator"]
+    )
 
     # --- TAB 1: VOICE GENERATOR ---
     with tab1:
@@ -116,47 +119,87 @@ if check_password():
                         mime="audio/mp3",
                     )
 
-    # --- TAB 2: REAL MP4 VIDEO GENERATOR ---
+    # --- TAB 2: ULTRA HD VISUAL GENERATOR ---
     with tab2:
-        st.subheader("Text-to-Video Generator (Real MP4 Clips)")
+        st.subheader("🖼️ FLUX 8K Ultra-HD Image Studio")
         st.caption(
-            "AI se 5-second ki real motion video generate karein (Render hone mein 1-2 minutes lag sakte hain)."
+            "High-resolution professional AI images generate karein har format mein."
         )
 
-        video_prompt = st.text_area(
-            "Video Scene Description (English Prompt)",
-            height=150,
-            placeholder="e.g. A majestic lion walking in the grassland during sunset, cinematic 4k video",
-        )
+        p_col1, p_col2 = st.columns([2, 1])
 
-        if st.button("🎬 Generate Real MP4 Video"):
-            if not video_prompt.strip():
-                st.warning("Pehle video prompt likhein!")
+        with p_col1:
+            prompt_input = st.text_area(
+                "Visual Description (Prompt)",
+                height=160,
+                placeholder="e.g. A futuristic lion king with a glowing crown standing on a peak, hyperrealistic, dramatic volumetric lighting",
+            )
+
+        with p_col2:
+            ratio_option = st.selectbox(
+                "📐 Aspect Ratio / Format",
+                [
+                    "16:9 (Landscape - YouTube / Web)",
+                    "9:16 (Vertical - Reels / Shorts / Stories)",
+                    "1:1 (Square - Instagram / Profile)",
+                    "4:3 (Standard Banner)",
+                    "21:9 (Ultrawide Cinematic)",
+                ],
+            )
+
+            num_images = st.slider(
+                "🖼️ Number of Variations",
+                min_value=2,
+                max_value=4,
+                value=2,
+                step=1,
+            )
+
+        # Aspect Ratio Dimensions Mapping
+        dimensions = {
+            "16:9 (Landscape - YouTube / Web)": (1280, 720),
+            "9:16 (Vertical - Reels / Shorts / Stories)": (720, 1280),
+            "1:1 (Square - Instagram / Profile)": (1024, 1024),
+            "4:3 (Standard Banner)": (1152, 864),
+            "21:9 (Ultrawide Cinematic)": (1344, 576),
+        }
+
+        width, height = dimensions[ratio_option]
+
+        if st.button("✨ Generate 8K Ultra-HD Visuals"):
+            if not prompt_input.strip():
+                st.warning("Pehle prompt input daalein!")
             else:
-                with st.spinner(
-                    "🎥 Video processing ho rahi hai... Pehli baar mein 1 se 2 minute lag sakte hain!"
-                ):
-                    try:
-                        # Hugging Face Open Source Model Client
-                        client = Client("damo-vilab/modelscope-text-to-video")
-                        result_path = client.predict(
-                            prompt=video_prompt, api_name="/predict"
-                        )
+                # Automatic Prompt Enhancement for 8K/4K Quality
+                enhanced_prompt = f"{prompt_input}, 8k resolution, hyperrealistic, highly detailed, photorealistic, sharp focus, 4k masterwork"
+                encoded_prompt = urllib.parse.quote(enhanced_prompt)
 
-                        st.success("🎉 Video Ready!")
+                cols = st.columns(num_images)
 
-                        # Render MP4 Video Player
-                        st.video(result_path)
+                for i in range(num_images):
+                    with cols[i]:
+                        seed = random.randint(1000, 999999)
+                        img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&model=flux&seed={seed}&nologo=true"
 
-                        # Download Button
-                        with open(result_path, "rb") as file:
-                            st.download_button(
-                                label="📥 Download MP4 Video",
-                                data=file,
-                                file_name="ai_generated_video.mp4",
-                                mime="video/mp4",
-                            )
-                    except Exception as e:
-                        st.error(
-                            f"Video model busy hai ya error aaya. Dobara try karein. Detail: {e}"
-                        )
+                        with st.spinner(f"Rendering Image {i+1} (8K)..."):
+                            try:
+                                res = requests.get(img_url, timeout=30)
+                                if res.status_code == 200:
+                                    st.image(
+                                        res.content,
+                                        caption=f"Variation {i+1} ({width}x{height})",
+                                        use_container_width=True,
+                                    )
+                                    st.download_button(
+                                        label=f"📥 Download Variation {i+1}",
+                                        data=res.content,
+                                        file_name=f"ultra_hd_visual_{i+1}.png",
+                                        mime="image/png",
+                                        key=f"dl_{i}",
+                                    )
+                                else:
+                                    st.error(
+                                        f"Failed to generate variation {i+1}"
+                                    )
+                            except Exception as e:
+                                st.error(f"Error loading image: {e}")
