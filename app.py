@@ -7,7 +7,7 @@ import streamlit as st
 
 # Page Config
 st.set_page_config(
-    page_title="Team AI Production Studio", page_icon="🎨", layout="wide"
+    page_title="Team AI Production Studio Pro", page_icon="🎨", layout="wide"
 )
 
 # Custom Dark ElevenLabs Styling
@@ -54,11 +54,11 @@ if check_password():
         st.session_state["authenticated"] = False
         st.rerun()
 
-    st.title("🚀 Team All-In-One AI Studio")
+    st.title("🚀 Team All-In-One AI Studio Pro")
 
     # Main Tabs
     tab1, tab2 = st.tabs(
-        ["🎙️ Voice Over Studio", "🎨 8K Ultra-HD Visual Generator"]
+        ["🎙️ Voice Over Studio", "🎨 8K Ultra-HD Realism Generator"]
     )
 
     # --- TAB 1: VOICE GENERATOR ---
@@ -119,11 +119,11 @@ if check_password():
                         mime="audio/mp3",
                     )
 
-    # --- TAB 2: ULTRA HD VISUAL GENERATOR ---
+    # --- TAB 2: ULTRA HD REALISM GENERATOR ---
     with tab2:
-        st.subheader("🖼️ FLUX 8K Ultra-HD Image Studio")
+        st.subheader("🖼️ FLUX Pro 8K Realism Image Studio")
         st.caption(
-            "High-resolution professional AI images generate karein har format mein."
+            "High-resolution photorealistic AI images generate karein, distortion ke baghair."
         )
 
         p_col1, p_col2 = st.columns([2, 1])
@@ -132,16 +132,17 @@ if check_password():
             prompt_input = st.text_area(
                 "Visual Description (Prompt)",
                 height=160,
-                placeholder="e.g. A futuristic lion king with a glowing crown standing on a peak, hyperrealistic, dramatic volumetric lighting",
+                placeholder="e.g. A detailed raw photo portrait of an ancient warrior, realistic skin texture, sharp focus, dramatic lighting",
             )
 
         with p_col2:
+            # Fixing Aspect Ratio by sending specific parameter
             ratio_option = st.selectbox(
                 "📐 Aspect Ratio / Format",
                 [
-                    "16:9 (Landscape - YouTube / Web)",
-                    "9:16 (Vertical - Reels / Shorts / Stories)",
-                    "1:1 (Square - Instagram / Profile)",
+                    "1:1 (Square - Instagram/Profile)",
+                    "9:16 (Vertical - Reels/Shorts/Stories)",
+                    "16:9 (Landscape - YouTube/Web)",
                     "4:3 (Standard Banner)",
                     "21:9 (Ultrawide Cinematic)",
                 ],
@@ -155,23 +156,24 @@ if check_password():
                 step=1,
             )
 
-        # Aspect Ratio Dimensions Mapping
-        dimensions = {
-            "16:9 (Landscape - YouTube / Web)": (1280, 720),
-            "9:16 (Vertical - Reels / Shorts / Stories)": (720, 1280),
-            "1:1 (Square - Instagram / Profile)": (1024, 1024),
-            "4:3 (Standard Banner)": (1152, 864),
-            "21:9 (Ultrawide Cinematic)": (1344, 576),
+        # Map display names to API parameters
+        ratio_api_param = {
+            "1:1 (Square - Instagram/Profile)": "1:1",
+            "9:16 (Vertical - Reels/Shorts/Stories)": "9:16",
+            "16:9 (Landscape - YouTube/Web)": "16:9",
+            "4:3 (Standard Banner)": "4:3",
+            "21:9 (Ultrawide Cinematic)": "21:9",
         }
 
-        width, height = dimensions[ratio_option]
+        aspect_ratio_val = ratio_api_param[ratio_option]
 
-        if st.button("✨ Generate 8K Ultra-HD Visuals"):
+        if st.button("✨ Generate Photorealistic 8K Visuals"):
             if not prompt_input.strip():
                 st.warning("Pehle prompt input daalein!")
             else:
-                # Automatic Prompt Enhancement for 8K/4K Quality
-                enhanced_prompt = f"{prompt_input}, 8k resolution, hyperrealistic, highly detailed, photorealistic, sharp focus, 4k masterwork"
+                # Stronger Prompt Enhancement for better realism and fidelity
+                # Using flux-pro model if available or reinforcing flux for quality
+                enhanced_prompt = f"raw photorealistic photo of {prompt_input}, extremely detailed skin texture, visible pores, sharp focus, shot on Canon EOS R5 with 85mm lens, f/1.8, cinematic lighting, dramatic shadows, 8k resolution, ultra-high definition, masterpiece"
                 encoded_prompt = urllib.parse.quote(enhanced_prompt)
 
                 cols = st.columns(num_images)
@@ -179,27 +181,28 @@ if check_password():
                 for i in range(num_images):
                     with cols[i]:
                         seed = random.randint(1000, 999999)
-                        img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&model=flux&seed={seed}&nologo=true"
+                        # Updated URL to use &ar parameter and model=flux for better results
+                        img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?model=flux&seed={seed}&nologo=true&ar={aspect_ratio_val}"
 
-                        with st.spinner(f"Rendering Image {i+1} (8K)..."):
+                        with st.spinner(f"Rendering Image {i+1} (8K Realism)..."):
                             try:
-                                res = requests.get(img_url, timeout=30)
+                                res = requests.get(img_url, timeout=40)
                                 if res.status_code == 200:
                                     st.image(
                                         res.content,
-                                        caption=f"Variation {i+1} ({width}x{height})",
+                                        caption=f"Variation {i+1} ({ratio_option})",
                                         use_container_width=True,
                                     )
                                     st.download_button(
                                         label=f"📥 Download Variation {i+1}",
                                         data=res.content,
-                                        file_name=f"ultra_hd_visual_{i+1}.png",
+                                        file_name=f"realism_visual_{i+1}.png",
                                         mime="image/png",
-                                        key=f"dl_{i}",
+                                        key=f"dl_{i}_{seed}",
                                     )
                                 else:
                                     st.error(
-                                        f"Failed to generate variation {i+1}"
+                                        f"Failed to generate variation {i+1}. API Status: {res.status_code}"
                                     )
                             except Exception as e:
                                 st.error(f"Error loading image: {e}")
