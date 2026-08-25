@@ -1,5 +1,6 @@
 import asyncio
 import edge_tts
+from gradio_client import Client
 import requests
 import streamlit as st
 
@@ -115,56 +116,47 @@ if check_password():
                         mime="audio/mp3",
                     )
 
-    # --- TAB 2: VIDEO GENERATOR ---
+    # --- TAB 2: REAL MP4 VIDEO GENERATOR ---
     with tab2:
-        st.subheader("Text-to-Video Clip Generator")
-        st.caption("AI se high-quality motion video clips generate karein.")
+        st.subheader("Text-to-Video Generator (Real MP4 Clips)")
+        st.caption(
+            "AI se 5-second ki real motion video generate karein (Render hone mein 1-2 minutes lag sakte hain)."
+        )
 
-        v_col1, v_col2 = st.columns([2, 1])
+        video_prompt = st.text_area(
+            "Video Scene Description (English Prompt)",
+            height=150,
+            placeholder="e.g. A majestic lion walking in the grassland during sunset, cinematic 4k video",
+        )
 
-        with v_col1:
-            video_prompt = st.text_area(
-                "Video Scene Description (English Prompt)",
-                height=150,
-                placeholder="e.g. A futuristic robot walking in a glowing neon cyberpunk city, cinematic lighting, 4k",
-            )
-
-        with v_col2:
-            aspect_ratio = st.selectbox(
-                "Video Format",
-                ["16:9 (YouTube Video)", "9:16 (Reels / Shorts)"],
-            )
-
-        if st.button("✨ Generate AI Video"):
+        if st.button("🎬 Generate Real MP4 Video"):
             if not video_prompt.strip():
                 st.warning("Pehle video prompt likhein!")
             else:
                 with st.spinner(
-                    "Video generate ho rahi hai (Isme 15-30 seconds lag sakte hain)..."
+                    "🎥 Video processing ho rahi hai... Pehli baar mein 1 se 2 minute lag sakte hain!"
                 ):
                     try:
-                        # Free API Request via Pollinations Media Engine
-                        width, height = (
-                            (1024, 576)
-                            if "16:9" in aspect_ratio
-                            else (576, 1024)
+                        # Hugging Face Open Source Model Client
+                        client = Client("damo-vilab/modelscope-text-to-video")
+                        result_path = client.predict(
+                            prompt=video_prompt, api_name="/predict"
                         )
-                        clean_prompt = video_prompt.replace(" ", "%20")
-                        video_url = f"https://image.pollinations.ai/prompt/{clean_prompt}?width={width}&height={height}&model=flux&nologo=true"
 
-                        res = requests.get(video_url)
-                        if res.status_code == 200:
-                            st.success("Visual Preview Generated!")
-                            st.image(res.content, use_container_width=True)
+                        st.success("🎉 Video Ready!")
+
+                        # Render MP4 Video Player
+                        st.video(result_path)
+
+                        # Download Button
+                        with open(result_path, "rb") as file:
                             st.download_button(
-                                "📥 Download Visual Media",
-                                data=res.content,
-                                file_name="ai_scene.png",
-                                mime="image/png",
-                            )
-                        else:
-                            st.error(
-                                "Video generate karne mein masla aaya, dobara try karein."
+                                label="📥 Download MP4 Video",
+                                data=file,
+                                file_name="ai_generated_video.mp4",
+                                mime="video/mp4",
                             )
                     except Exception as e:
-                        st.error(f"Error: {e}")
+                        st.error(
+                            f"Video model busy hai ya error aaya. Dobara try karein. Detail: {e}"
+                        )
